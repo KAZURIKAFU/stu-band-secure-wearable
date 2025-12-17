@@ -8,7 +8,8 @@ Stu-Band is a low-power wearable system designed for secure personnel identifica
 Defense and industrial facilities require reliable, low-maintenance solutions for personnel tracking. Existing methods are power-intensive, infrastructure-heavy, or manually operated, leading to inefficiencies and security gaps.
 
 ## Solution
-Stu-Band provides a wearable-based approach that autonomously collects proximity and presence data and transmits it to a backend system for validation and analysis. The design prioritizes power efficiency, modularity, and deployability.
+The backend includes presence analytics that identify entry and exit events and support anomaly detection for mission-critical environments.
+
 
 ## System Architecture
 Refer to the architecture diagram in the `architecture/` directory.
