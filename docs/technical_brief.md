@@ -8,3 +8,4 @@ The backend processes time-stamped proximity logs to detect entry and exit event
 
 Such analytics are critical for defense training facilities, drone operation zones, and restricted industrial environments where accountability and situational awareness are required.
 
+The architecture is intentionally designed to support future encryption, role-based access control, and command-center integration.
