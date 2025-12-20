@@ -52,7 +52,7 @@ Current Status: MVP (Early Stage)
 - Command-center dashboard
 - Integration with access control systems
 
-##Author
+## Author
 Developed by Abhay Sharma  
 Final-year B.Tech (Data Science)  
 Aspiring AI / Defense-Tech Research Intern
