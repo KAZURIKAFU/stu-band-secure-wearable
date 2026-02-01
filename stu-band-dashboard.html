@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>STU-Band Edge Intelligence Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: #4ade80;
+      font-family: monospace;
+    }
+
+    .container {
+      min-height: 100vh;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    @media (min-width: 900px) {
+      .container {
+        grid-template-columns: 1fr 1fr;
+      }
+      .full {
+        grid-column: span 2;
+      }
+    }
+
+    .card {
+      background: #020202;
+      border: 1px solid #064e3b;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 0 20px rgba(34,197,94,0.15);
+    }
+
+    h2 {
+      margin: 0 0 12px 0;
+      font-size: 14px;
+      text-transform: uppercase;
+    }
+
+    .telemetry {
+      height: 140px;
+      border: 1px solid #064e3b;
+      border-radius: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-top: 6px;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      margin-top: 10px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(8, 16px);
+      gap: 6px;
+    }
+
+    .cell {
+      width: 16px;
+      height: 16px;
+      border-radius: 3px;
+      background: #1f2933;
+      box-shadow: inset 0 0 4px #000;
+      animation: pulse 2s infinite;
+    }
+
+    .cell.active {
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 0.4; }
+      50% { opacity: 1; }
+    }
+
+    .badge {
+      border: 1px solid #22c55e;
+      border-radius: 50%;
+      width: 64px;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 0 20px rgba(34,197,94,0.4);
+    }
+
+    .bar {
+      height: 6px;
+      background: #1f2933;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      background: #22c55e;
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+
+    button {
+      background: transparent;
+      color: #22c55e;
+      border: 1px solid #22c55e;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #22c55e;
+      color: #000;
+    }
+
+    .chart {
+      position: relative;
+      height: 200px;
+      border-left: 1px solid #064e3b;
+      border-bottom: 1px solid #064e3b;
+      margin-top: 20px;
+    }
+
+    .curve {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .dot {
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: #22c55e;
+      border-radius: 50%;
+      box-shadow: 0 0 12px #22c55e;
+      transform: translate(-50%, -50%);
+    }
+
+    .axis-label {
+      position: absolute;
+      font-size: 10px;
+      opacity: 0.4;
+    }
+
+    .x-label {
+      bottom: -22px;
+      left: 50%;
+      transform: translateX(-50%);
+    }
+
+    .y-label {
+      left: -48px;
+      top: 50%;
+      transform: rotate(-90deg) translateY(-50%);
+      transform-origin: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Q1 -->
+    <div class="card">
+      <h2>01 // Edge Telemetry</h2>
+      <div class="telemetry">
+        <canvas id="telemetryCanvas"></canvas>
+      </div>
+      <div class="row">
+        <div>HEART_RATE: <b id="hr">72 BPM</b></div>
+        <div>SRAM_OCC: <b id="sram">17.8 KB / 256 KB</b></div>
+      </div>
+      <div class="row">
+        <div>CPU_LOAD: <b>14.2%</b></div>
+        <div>EPSILON: <b id="epsilonLabel">2.00</b></div>
+      </div>
+      <input id="epsilonSlider" type="range" min="0.5" max="5" step="0.1" value="2.0">
+    </div>
+
+    <!-- Q2 -->
+    <div class="card">
+      <h2>02 // AQ-FDNF Engine</h2>
+      <div style="display:flex; gap:16px;">
+        <div class="grid" id="grid"></div>
+        <div style="font-size:12px;">
+          <p><b><i>CORE_OPTIMIZATION</i></b></p>
+          <p>PRECISION: INT8_QUANT</p>
+          <p>SPARSITY: <span id="sparsityLabel">30%</span></p>
+          <p>MODE: <span id="modeLabel">STEADY</span></p>
+        </div>
+      </div>
+      <input id="sparsitySlider" type="range" min="0.1" max="0.8" step="0.05" value="0.3">
+    </div>
+
+    <!-- Q3 -->
+    <div class="card">
+      <h2>03 // Privacy Guard</h2>
+      <div style="display:flex; justify-content:space-around; align-items:center;">
+        <div class="badge">LDP<br>GUARD</div>
+        <div style="font-size:12px;">
+          <p>RAW_TRANSIT: 0.00 KB</p>
+          <p>GRADIENT_SIZE: 1.2 KB</p>
+          <p>CONFIDENCE: <span id="confidenceLabel">92.0%</span></p>
+          <p style="text-decoration:underline; font-weight:bold;">GDPR_VERIFIED</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h2>04 // Sustainability</h2>
+        <button id="modeToggle">TOGGLE_MODE</button>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; font-size:12px; margin-bottom:12px;">
+        <div style="background:#020202; padding:8px; border-radius:6px;">
+          <p style="opacity:0.5;">E_inf</p>
+          <p style="font-size:18px; font-weight:bold; color:white;" id="energyInf">68 mJ</p>
+        </div>
+        <div style="background:#020202; padding:8px; border-radius:6px;">
+          <p style="opacity:0.5;">SAVED_TOTAL</p>
+          <p style="font-size:18px; font-weight:bold; color:white;" id="energySaved">0.00 J</p>
+        </div>
+      </div>
+
+      <div>
+        <div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:4px;">
+          <span>SRAM_PRESSURE</span>
+          <span id="sramPressureLabel">11.5%</span>
+        </div>
+        <div class="bar">
+          <div class="bar-fill" id="sramBar"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;">
+        <div style="font-size:10px; margin-bottom:4px;">LATENCY_DECOMPOSITION (2.25s)</div>
+        <div class="bar">
+          <div class="bar-fill" style="width:10%; background:#4ade80;"></div>
+          <div class="bar-fill" style="width:75%; background:#22c55e;"></div>
+          <div class="bar-fill" style="width:15%; background:#064e3b;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pareto -->
+    <div class="card full">
+      <h2 style="text-align:center; opacity:0.6; font-style:italic; text-decoration:underline;">Trade-off Analysis: Accuracy vs. Privacy Budget (ε)</h2>
+      <div class="chart" id="chart">
+        <svg class="curve" viewBox="0 0 800 200" preserveAspectRatio="none">
+          <path d="M 10 180 Q 200 160 800 20" fill="none" stroke="#22c55e" stroke-width="2" stroke-dasharray="8"/>
+        </svg>
+        <div class="dot" id="paretoDot"></div>
+        <div class="axis-label x-label">Privacy Level (← ε)</div>
+        <div class="axis-label y-label">Inference Accuracy</div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const canvas = document.getElementById("telemetryCanvas");
+    const ctx = canvas.getContext("2d");
+
+    function resizeCanvas() {
+      canvas.width = canvas.clientWidth;
+      canvas.height = canvas.clientHeight;
+    }
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
+
+    let epsilon = 2.0;
+    let sparsity = 0.3;
+    let mode = "steady";
+    let energySaved = 0;
+    let confidence = 0.92;
+
+    const epsilonSlider = document.getElementById("epsilonSlider");
+    const sparsitySlider = document.getElementById("sparsitySlider");
+    const epsilonLabel = document.getElementById("epsilonLabel");
+    const sparsityLabel = document.getElementById("sparsityLabel");
+    const modeLabel = document.getElementById("modeLabel");
+    const energySavedLabel = document.getElementById("energySaved");
+    const energyInfLabel = document.getElementById("energyInf");
+    const confidenceLabel = document.getElementById("confidenceLabel");
+    const sramLabel = document.getElementById("sram");
+    const sramPressureLabel = document.getElementById("sramPressureLabel");
+    const sramBar = document.getElementById("sramBar");
+    const paretoDot = document.getElementById("paretoDot");
+    const modeToggle = document.getElementById("modeToggle");
+
+    epsilonSlider.oninput = e => {
+      epsilon = parseFloat(e.target.value);
+      epsilonLabel.textContent = epsilon.toFixed(2);
+    };
+
+    sparsitySlider.oninput = e => {
+      sparsity = parseFloat(e.target.value);
+      sparsityLabel.textContent = Math.round(sparsity * 100) + "%";
+      updateGrid();
+    };
+
+    modeToggle.onclick = () => {
+      mode = mode === "steady" ? "cold" : "steady";
+      modeLabel.textContent = mode.toUpperCase();
+      energyInfLabel.textContent = mode === "cold" ? "210 mJ" : "68 mJ";
+    };
+
+    const grid = document.getElementById("grid");
+    const cells = [];
+    for (let i = 0; i < 64; i++) {
+      const div = document.createElement("div");
+      div.className = "cell";
+      grid.appendChild(div);
+      cells.push(div);
+    }
+
+    function updateGrid() {
+      const active = Math.floor(64 * (1 - sparsity));
+      cells.forEach((cell, i) => {
+        cell.classList.toggle("active", i < active);
+      });
+    }
+    updateGrid();
+
+    function drawTelemetry() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "#22c55e";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+
+      const points = 60;
+      for (let i = 0; i < points; i++) {
+        const x = (i / (points - 1)) * canvas.width;
+        const noise = (Math.random() - 0.5) * (20 / epsilon);
+        const y = canvas.height / 2 + Math.sin(i / 4) * 30 + noise;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    }
+
+    function updateStats() {
+      energySaved += mode === "cold" ? 0.05 : 0.15;
+      energySavedLabel.textContent = energySaved.toFixed(2) + " J";
+
+      confidence = 0.88 + Math.random() * 0.05;
+      confidenceLabel.textContent = (confidence * 100).toFixed(1) + "%";
+
+      const baseSRAM = 17.8;
+      const sramUsed = baseSRAM + (1 - sparsity) * 40;
+      sramLabel.textContent = sramUsed.toFixed(1) + " KB / 256 KB";
+      const pressure = sramUsed / 256;
+      sramPressureLabel.textContent = (pressure * 100).toFixed(1) + "%";
+      sramBar.style.width = (pressure * 100) + "%";
+      sramBar.style.background = pressure > 0.8 ? "#ef4444" : "#22c55e";
+
+      const chart = document.getElementById("chart");
+      const w = chart.clientWidth;
+      const h = chart.clientHeight;
+      paretoDot.style.left = (epsilon / 5) * w + "px";
+      paretoDot.style.top = h - confidence * h + "px";
+    }
+
+    function loop() {
+      drawTelemetry();
+      updateStats();
+      requestAnimationFrame(loop);
+    }
+
+    loop();
+  </script>
+</body>
+</html>
